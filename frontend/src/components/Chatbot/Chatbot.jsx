@@ -12,7 +12,7 @@ import {
 import { useAuth } from "../../context/authContext";
 
 const FREE_MSG_LIMIT = 3;
-const API_BASE = "http://localhost:3000";
+const API_BASE = "https://lawease-ai-bot-production.up.railway.app";
 const generateId = () => Math.random().toString(36).slice(2, 10);
 const GUEST_COUNT_KEY = "lawease_guest_count";
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = "https://lawease-ai-bot-production.up.railway.app";
 
 const Setting = () => {
   const [currentPassword, setCurrentPassword] = useState("");

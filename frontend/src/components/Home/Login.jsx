@@ -17,7 +17,7 @@ export default function Login() {
 
     try {
       const { data } = await axios.post(
-        "http://localhost:3000/api/auth/login",
+        "https://lawease-ai-bot-production.up.railway.app/api/auth/login",
         {
           email,
           password,

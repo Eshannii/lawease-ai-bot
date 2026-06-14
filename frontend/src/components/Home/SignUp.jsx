@@ -27,7 +27,7 @@ export default function Signup() {
     setLoading(true);
     try {
       const { data } = await axios.post(
-        "http://localhost:3000/api/auth/register",
+        "https://lawease-ai-bot-production.up.railway.app/api/auth/register",
         {
           name,
           email,

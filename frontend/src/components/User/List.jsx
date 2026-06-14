@@ -23,9 +23,12 @@ const List = () => {
     setError("");
     try {
       const token = localStorage.getItem("token");
-      const { data } = await axios.get("http://localhost:3000/api/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await axios.get(
+        "https://lawease-ai-bot-production.up.railway.app/api/users",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       setUsers(data.users);
     } catch (err) {
       setError(err.response?.data?.error || "Failed to fetch users");
@@ -43,9 +46,12 @@ const List = () => {
     setDeletingId(id);
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://lawease-ai-bot-production.up.railway.app/api/users/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       setUsers((prev) => prev.filter((u) => u._id !== id));
     } catch (err) {
       alert(err.response?.data?.error || "Failed to delete user");
