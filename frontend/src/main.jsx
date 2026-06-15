@@ -5,17 +5,13 @@ import "./index.css";
 import App from "./App.jsx";
 import AuthProvider from "./context/authContext.jsx";
 
-import { NotificationProvider } from "./components/notif/NotificationContext";
-
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <NotificationProvider>
-          {" "}
-          {/* ✅ AuthProvider ke andar */}
-          <App />
-        </NotificationProvider>
+        {" "}
+        {/* ✅ AuthProvider ke andar */}
+        <App />
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
