@@ -3,7 +3,6 @@ import User from "../models/User.js";
 
 const verifyUser = async (req, res, next) => {
   try {
-    // check if Authorization header exists
     if (!req.headers.authorization) {
       return res
         .status(401)
@@ -27,7 +26,7 @@ const verifyUser = async (req, res, next) => {
       return res.status(404).json({ success: false, error: "User not found" });
     }
 
-    req.user = { id: user._id, role: user.role }; // safer to just pass id and role
+    req.user = { id: user._id, role: user.role, encKey: decoded.encKey }; // encKey add kiya
     next();
   } catch (error) {
     console.error("Verification Middleware Error:", error);

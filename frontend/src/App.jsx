@@ -12,6 +12,7 @@ import UserDashboard from "./components/Dashboard/UserDashboard";
 import ChatBot from "./components/Chatbot/Chatbot";
 import List from "./components/User/List";
 import Setting from "./components/Home/Setting";
+import CaseLaw from "./components/Home/CaseLaw";
 function App() {
   return (
     <Routes>
@@ -30,6 +31,7 @@ function App() {
       >
         <Route index element={<AdminSummary />} />
         <Route path="users" element={<List />} />
+        <Route path="case-laws" element={<CaseLaw />} />
         <Route path="chatbot" element={<ChatBot />} />
         <Route path="pricing" element={<div>Pricing Management</div>} />
         <Route path="settings" element={<Setting />} />
@@ -44,6 +46,8 @@ function App() {
           </PrivateRoutes>
         }
       >
+        <Route path="case-laws" element={<CaseLaw />} />
+
         <Route path="chatbot" element={<ChatBot />} />
         <Route path="settings" element={<Setting />} />
       </Route>

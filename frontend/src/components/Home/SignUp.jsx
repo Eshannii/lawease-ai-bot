@@ -42,7 +42,7 @@ export default function Signup() {
         if (data.user.role === "admin") {
           navigate("/admin-dashboard");
         } else {
-          navigate("/user-dashboard");
+          navigate("/user-dashboard/chatbot");
         }
       }
     } catch (err) {

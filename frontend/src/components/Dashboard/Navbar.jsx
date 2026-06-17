@@ -9,6 +9,7 @@ import {
   Menu,
   X,
   Scale,
+  Gavel,
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
@@ -31,6 +32,11 @@ const Navbar = () => {
       icon: <Users className="w-4 h-4" />,
     },
     {
+      name: "Case Laws",
+      path: "/admin-dashboard/case-laws",
+      icon: <Gavel className="w-4 h-4" />,
+    },
+    {
       name: "Chatbot",
       path: "/admin-dashboard/chatbot",
       icon: <MessageSquareCode className="w-4 h-4" />,
@@ -48,6 +54,11 @@ const Navbar = () => {
   ];
 
   const userNavItems = [
+    {
+      name: "Case Laws",
+      path: "/user-dashboard/case-laws",
+      icon: <Gavel className="w-4 h-4" />,
+    },
     {
       name: "Chatbot",
       path: "/user-dashboard/chatbot",
