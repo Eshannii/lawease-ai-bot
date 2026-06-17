@@ -5,6 +5,7 @@ import authRouter from "./routes/auth.js";
 import userRouter from "./routes/user.js";
 import { chatbotRoutes } from "./routes/chat.js";
 import { chatHistoryRoutes } from "./routes/chatHistory.js";
+import caseLawRoutes from "./routes/caseLaw.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -12,6 +13,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/chat-history", chatHistoryRoutes);
+app.use("/api/search", caseLawRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

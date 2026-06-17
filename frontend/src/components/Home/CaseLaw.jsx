@@ -12,7 +12,8 @@ import {
 // Adjust this to match your setup:
 // - Vite project  -> import.meta.env.VITE_API_URL
 // - Create React App -> process.env.REACT_APP_API_URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE_URL =
+  "https://lawease-ai-bot-production.up.railway.app" || "http://localhost:3000";
 
 const CaseLaw = () => {
   const [keyword, setKeyword] = useState("");
@@ -31,10 +32,25 @@ const CaseLaw = () => {
     setSearched(true);
 
     try {
+      const token = localStorage.getItem("token");
+
       const res = await fetch(
         `${API_BASE_URL}/api/search?keyword=${encodeURIComponent(trimmed)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
+
+      if (res.status === 401) {
+        setError("Session expired. Dobara login karein.");
+        setResults([]);
+        return;
+      }
+
       if (!res.ok) throw new Error("Request failed");
+
       const data = await res.json();
       setResults(data.results || []);
     } catch (err) {
