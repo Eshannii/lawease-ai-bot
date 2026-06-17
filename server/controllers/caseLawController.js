@@ -25,6 +25,36 @@ const buildSnippet = (text, keyword, contextLength = 150) => {
   );
 };
 
+// Pura case judgment sirf jab user "expand" kare tab fetch hota hai,
+// taake search results lightweight rahen (full_text bohot lamba hota hai).
+export const getCaseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const caseDoc = await CaseLaw.findById(id).select(
+      "title case_no court year result full_text judges reported_as",
+    );
+
+    if (!caseDoc) {
+      return res.status(404).json({
+        success: false,
+        error: "Case not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      case: caseDoc,
+    });
+  } catch (error) {
+    console.error("GET CASE ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 export const searchCaseLaws = async (req, res) => {
   try {
     const { keyword } = req.query;
