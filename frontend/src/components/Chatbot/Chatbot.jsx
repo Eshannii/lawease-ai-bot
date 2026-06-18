@@ -8,8 +8,14 @@ import {
   MessageSquare,
   ChevronLeft,
   Scale,
+  Download,
+  FileText,
+  File,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "../../context/authContext";
+import { Document, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
+import jsPDF from "jspdf";
 
 const FREE_MSG_LIMIT = 3;
 const API_BASE = "https://lawease-ai-bot-production.up.railway.app";
@@ -31,6 +37,274 @@ const newChatObj = () => ({
 
 // ── FIX #1: Single initialChat — both states use same ID ──────────────────
 const initialChat = newChatObj();
+
+// ─────────────────────────────────────────────────────────────
+// EXPORT HELPERS — parse simple markdown (##, **bold**, lists) into
+// structured blocks, then render to .docx or .pdf
+// ─────────────────────────────────────────────────────────────
+
+// Parses markdown text into a flat list of typed line objects
+const parseMarkdownBlocks = (markdown) => {
+  const lines = markdown.split("\n");
+  const blocks = [];
+
+  for (let raw of lines) {
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      blocks.push({ type: "space" });
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      blocks.push({ type: "heading", text: line.replace(/^##\s*/, "") });
+    } else if (line.startsWith("# ")) {
+      blocks.push({ type: "title", text: line.replace(/^#\s*/, "") });
+    } else if (/^[-*]\s+/.test(line)) {
+      blocks.push({ type: "bullet", text: line.replace(/^[-*]\s+/, "") });
+    } else if (/^\d+\.\s+/.test(line)) {
+      blocks.push({ type: "numbered", text: line.replace(/^\d+\.\s+/, "") });
+    } else {
+      blocks.push({ type: "paragraph", text: line });
+    }
+  }
+  return blocks;
+};
+
+// Splits a line of text into { text, bold } runs based on **bold** markers
+const splitBoldRuns = (text) => {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  return parts.map((part) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return { text: part.slice(2, -2), bold: true };
+    }
+    return { text: part, bold: false };
+  });
+};
+
+const buildFilename = (title, ext) => {
+  const safe = (title || "LawEase-Research")
+    .replace(/[^a-z0-9\- ]/gi, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 60);
+  return `${safe || "LawEase-Research"}.${ext}`;
+};
+
+// ── Export to Word (.docx) ─────────────────────────────────────────────
+const exportToWord = async (content, chatTitle) => {
+  const blocks = parseMarkdownBlocks(content);
+  const children = [];
+
+  // Document header
+  children.push(
+    new Paragraph({
+      text: "LawEase AI — Legal Research Memo",
+      heading: HeadingLevel.TITLE,
+      spacing: { after: 100 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Generated: ${new Date().toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          })}`,
+          italics: true,
+          color: "666666",
+          size: 20,
+        }),
+      ],
+      spacing: { after: 300 },
+    }),
+  );
+
+  for (const block of blocks) {
+    if (block.type === "space") {
+      children.push(new Paragraph({ text: "" }));
+    } else if (block.type === "heading" || block.type === "title") {
+      children.push(
+        new Paragraph({
+          text: block.text,
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 120 },
+        }),
+      );
+    } else if (block.type === "bullet" || block.type === "numbered") {
+      const runs = splitBoldRuns(block.text).map(
+        (r) => new TextRun({ text: r.text, bold: r.bold }),
+      );
+      children.push(
+        new Paragraph({
+          children: runs,
+          bullet: { level: 0 },
+          spacing: { after: 80 },
+        }),
+      );
+    } else {
+      const runs = splitBoldRuns(block.text).map(
+        (r) => new TextRun({ text: r.text, bold: r.bold }),
+      );
+      children.push(new Paragraph({ children: runs, spacing: { after: 120 } }));
+    }
+  }
+
+  const doc = new Document({
+    sections: [{ properties: {}, children }],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = buildFilename(chatTitle, "docx");
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+// ── Export to PDF ───────────────────────────────────────────────────────
+const exportToPDF = (content, chatTitle) => {
+  const blocks = parseMarkdownBlocks(content);
+  const pdf = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const margin = 50;
+  const maxWidth = pageWidth - margin * 2;
+  let y = margin;
+
+  const ensureSpace = (lineHeight) => {
+    if (y + lineHeight > pdf.internal.pageSize.getHeight() - margin) {
+      pdf.addPage();
+      y = margin;
+    }
+  };
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.text("LawEase AI — Legal Research Memo", margin, y);
+  y += 22;
+
+  pdf.setFont("helvetica", "italic");
+  pdf.setFontSize(9);
+  pdf.setTextColor(100);
+  pdf.text(
+    `Generated: ${new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    })}`,
+    margin,
+    y,
+  );
+  pdf.setTextColor(0);
+  y += 24;
+
+  const writeRuns = (runs, x, fontSize, bulletPrefix = "") => {
+    pdf.setFontSize(fontSize);
+    let cursorX = x;
+    if (bulletPrefix) {
+      pdf.setFont("helvetica", "normal");
+      pdf.text(bulletPrefix, x, y);
+      cursorX = x + 14;
+    }
+    for (const run of runs) {
+      pdf.setFont("helvetica", run.bold ? "bold" : "normal");
+      const words = run.text.split(" ");
+      for (const word of words) {
+        const wordWidth = pdf.getTextWidth(word + " ");
+        if (cursorX + wordWidth > margin + maxWidth) {
+          y += fontSize + 6;
+          ensureSpace(fontSize + 6);
+          cursorX = bulletPrefix ? x + 14 : x;
+        }
+        pdf.text(word + " ", cursorX, y);
+        cursorX += wordWidth;
+      }
+    }
+    y += fontSize + 8;
+  };
+
+  for (const block of blocks) {
+    if (block.type === "space") {
+      y += 8;
+      continue;
+    }
+    ensureSpace(20);
+    if (block.type === "heading" || block.type === "title") {
+      y += 8;
+      ensureSpace(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(13);
+      pdf.text(block.text, margin, y);
+      y += 18;
+    } else if (block.type === "bullet") {
+      const runs = splitBoldRuns(block.text);
+      writeRuns(runs, margin, 10.5, "•");
+    } else if (block.type === "numbered") {
+      const runs = splitBoldRuns(block.text);
+      writeRuns(runs, margin, 10.5, "-");
+    } else {
+      const runs = splitBoldRuns(block.text);
+      writeRuns(runs, margin, 10.5);
+    }
+  }
+
+  pdf.save(buildFilename(chatTitle, "pdf"));
+};
+
+// ── Export dropdown button shown under each assistant message ─────────
+const ExportMenu = ({ content, chatTitle }) => {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative inline-block mt-2" ref={menuRef}>
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-[#C5A059] border border-slate-700/60 hover:border-[#C5A059]/50 rounded-lg px-2.5 py-1.5 transition-all bg-slate-900/40"
+      >
+        <Download size={12} />
+        <span>Export</span>
+        <ChevronDown size={11} className={open ? "rotate-180" : ""} />
+      </button>
+
+      {open && (
+        <div className="absolute z-30 bottom-full mb-1 left-0 bg-[#1E293B] border border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[150px]">
+          <button
+            onClick={() => {
+              exportToWord(content, chatTitle);
+              setOpen(false);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-slate-200 hover:bg-slate-800 transition-colors"
+          >
+            <FileText size={14} className="text-blue-400" />
+            Export as Word
+          </button>
+          <button
+            onClick={() => {
+              exportToPDF(content, chatTitle);
+              setOpen(false);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-slate-200 hover:bg-slate-800 transition-colors border-t border-slate-800"
+          >
+            <File size={14} className="text-red-400" />
+            Export as PDF
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ChatBot = () => {
   const { user } = useAuth();
@@ -360,11 +634,12 @@ const ChatBot = () => {
 
           {activeChat?.messages.map((msg, i) => {
             const isUser = msg.role === "user";
+            const isWelcome = !isUser && msg.content === WELCOME_MSG.content;
             return (
               <div
                 key={i}
-                className={`flex w-full px-4 md:px-12 lg:px-24 xl:px-32 ${
-                  isUser ? "justify-end" : "justify-start"
+                className={`flex flex-col w-full px-4 md:px-12 lg:px-24 xl:px-32 ${
+                  isUser ? "items-end" : "items-start"
                 }`}
               >
                 <div
@@ -406,6 +681,14 @@ const ChatBot = () => {
                     {msg.content}
                   </ReactMarkdown>
                 </div>
+
+                {/* Export button — only on substantive assistant replies */}
+                {!isUser && !isWelcome && (
+                  <ExportMenu
+                    content={msg.content}
+                    chatTitle={activeChat?.title}
+                  />
+                )}
               </div>
             );
           })}

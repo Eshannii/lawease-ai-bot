@@ -9,11 +9,11 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  Bookmark,
+  Building2,
 } from "lucide-react";
 
-// Adjust this to match your setup:
-// - Vite project     -> import.meta.env.VITE_API_URL
-// - Create React App -> process.env.REACT_APP_API_URL
+// API Base URL Configuration
 const API_BASE_URL = "https://lawease-ai-bot-production.up.railway.app";
 
 const CaseLaw = () => {
@@ -23,8 +23,7 @@ const CaseLaw = () => {
   const [error, setError] = useState("");
   const [searched, setSearched] = useState(false);
 
-  // Full judgment state: which card is expanded, its cached text,
-  // and separate loading/error state so it never interferes with search.
+  // Full judgment state
   const [expandedId, setExpandedId] = useState(null);
   const [fullTextCache, setFullTextCache] = useState({});
   const [fullTextLoadingId, setFullTextLoadingId] = useState(null);
@@ -70,8 +69,6 @@ const CaseLaw = () => {
     }
   };
 
-  // Expands/collapses a card, fetching the full judgment text only
-  // the first time it's opened (then serves it from cache).
   const handleToggleExpand = async (id) => {
     if (expandedId === id) {
       setExpandedId(null);
@@ -119,7 +116,10 @@ const CaseLaw = () => {
     const parts = text.split(new RegExp(`(${safeKeyword})`, "gi"));
     return parts.map((part, i) =>
       part.toLowerCase() === keyword.trim().toLowerCase() ? (
-        <mark key={i} className="bg-[#840a23]/30 text-sky-300 rounded px-0.5">
+        <mark
+          key={i}
+          className="bg-amber-100 text-[#7A0913] font-bold rounded px-1 py-0.5"
+        >
           {part}
         </mark>
       ) : (
@@ -129,72 +129,102 @@ const CaseLaw = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#11162a] pt-20 sm:pt-28 pb-12 px-4 sm:px-6 md:px-12">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6 sm:mb-8">
-          <Gavel className="w-6 h-6 sm:w-7 sm:h-7 text-sky-400 flex-shrink-0" />
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-100">
-            Case Laws
+    <div className="min-h-screen bg-[#F8FAFC] pt-24 px-4 sm:px-6 md:px-10 pb-12 text-slate-700 font-sans antialiased relative overflow-x-hidden">
+      {/* 3D Luxury Glassmorphic Ambient Backdrops */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-12 right-12 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/20 to-indigo-100/30 rounded-full blur-[140px] opacity-80" />
+        <div className="absolute top-1/4 -left-20 w-[450px] h-[450px] bg-gradient-to-tr from-[#7A0913]/5 to-amber-100/20 rounded-full blur-[120px] opacity-60" />
+      </div>
+
+      <div className="relative z-10 max-w-4xl mx-auto space-y-8">
+        {/* Premium Elite Hero Section */}
+        <div className="text-center space-y-4 py-6 border-b border-slate-200/60">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-[11px] font-bold tracking-widest text-[#1E3A8A] uppercase mx-auto">
+            <Scale className="w-3.5 h-3.5 text-[#C5A059]" />
+            <span>LawEase Precedent Engine</span>
+          </div>
+
+          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight max-w-2xl mx-auto leading-tight">
+            Search Reliable{" "}
+            <span className="font-serif italic font-normal text-[#7A0913]">
+              Pakistani Case Laws
+            </span>
           </h1>
+
+          <p className="text-slate-400 text-xs sm:text-sm font-light max-w-xl mx-auto">
+            Instant access to verified legal citations, constitutional rulings,
+            and comprehensive judicial records across Supreme Court and
+            Provincial High Courts.
+          </p>
         </div>
 
-        {/* Search bar */}
-        <form
-          onSubmit={handleSearch}
-          className="flex flex-col sm:flex-row gap-3 mb-8 sm:mb-10"
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Enter a keyword — case title, court, or citation..."
-              className="w-full pl-11 pr-4 py-3 rounded-full bg-white/[0.06] border border-white/[0.08] text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-400/60 focus:bg-white/[0.08] transition-all"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || !keyword.trim()}
-            className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#840a23] hover:bg-[#9c0c29] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all flex items-center justify-center gap-2"
+        {/* High-End Global Search Controller */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-[0_15px_35px_rgba(30,58,138,0.02)]">
+          <form
+            onSubmit={handleSearch}
+            className="flex flex-col sm:flex-row gap-3"
           >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" />
-            )}
-            Search
-          </button>
-        </form>
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors group-focus-within:text-[#1E3A8A]" />
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="Enter search keywords — case title, court name, or citations..."
+                className="w-full bg-slate-50 border border-slate-200 text-sm pl-11 pr-4 py-3 rounded-xl text-slate-800 focus:bg-white focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/50 transition-all duration-200"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !keyword.trim()}
+              className="w-full sm:w-auto px-7 py-3 rounded-xl bg-[#7A0913] hover:bg-[#94121E] active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Gavel className="w-4 h-4" />
+              )}
+              <span>Execute Query</span>
+            </button>
+          </form>
+        </div>
 
-        {/* Error */}
+        {/* Error Alert Channel */}
         {error && (
-          <div className="flex items-center gap-2 mb-6 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            {error}
+          <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold shadow-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-500" />
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Results count */}
+        {/* Dynamic Meta Tracking Stats */}
         {searched && !loading && !error && (
-          <p className="text-sm text-slate-400 mb-4">
-            {results.length} case{results.length !== 1 ? "s" : ""} found
-          </p>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Search Yields: {results.length} Documented Case
+              {results.length !== 1 ? "s" : ""}
+            </span>
+          </div>
         )}
 
-        {/* Empty state */}
+        {/* Architectural Empty Search State */}
         {searched && !loading && !error && results.length === 0 && (
-          <div className="text-center py-16">
-            <Scale className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400">
-              No case law found. Try another keyword.
+          <div className="flex flex-col items-center justify-center py-20 border border-dashed border-slate-200 bg-white rounded-2xl text-slate-400 shadow-[inset_0_4px_12px_rgba(0,0,0,0.01)]">
+            <div className="p-4 bg-slate-50 rounded-full border border-slate-100 mb-3 text-slate-300">
+              <Building2 className="w-6 h-6 text-slate-400" />
+            </div>
+            <p className="text-xs font-bold tracking-wide text-slate-600">
+              No Judgments Aligned
+            </p>
+            <p className="text-[11px] font-light text-slate-400 mt-0.5">
+              Alter your structural search terms or specify alternative court
+              criteria.
             </p>
           </div>
         )}
 
-        {/* Results list */}
-        <div className="flex flex-col gap-4">
+        {/* Core Case Documents Feed */}
+        <div className="flex flex-col gap-5">
           {results.map((item) => {
             const isExpanded = expandedId === item._id;
             const isFullTextLoading = fullTextLoadingId === item._id;
@@ -202,77 +232,84 @@ const CaseLaw = () => {
             return (
               <div
                 key={item._id}
-                className="p-4 sm:p-5 rounded-2xl bg-white/[0.04] border border-white/[0.06] hover:border-white/[0.12] transition-all"
+                className="group bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_10px_30px_rgba(0,0,0,0.005)] transition-all duration-200 hover:shadow-[0_15px_35px_rgba(30,58,138,0.02)] hover:-translate-y-0.5"
               >
-                <div className="flex items-start justify-between gap-3 sm:gap-4 mb-2">
-                  <h3 className="text-base font-semibold text-slate-100 leading-snug">
+                {/* Header Profile Meta */}
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <h3 className="text-base font-black text-slate-900 tracking-tight leading-snug flex-1">
                     {highlight(item.title)}
                   </h3>
                   {item.result && (
-                    <span className="flex-shrink-0 px-3 py-1 rounded-full bg-sky-400/10 text-sky-300 text-xs font-medium whitespace-nowrap">
+                    <span className="flex-shrink-0 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-100 tracking-wide uppercase shadow-sm">
                       {item.result}
                     </span>
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mb-3">
+                {/* Secure Tags Infrastructure */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-slate-500 mb-4 pb-3 border-b border-slate-100">
                   {item.court && (
-                    <span className="flex items-center gap-1">
-                      <Scale className="w-3.5 h-3.5" />
-                      {item.court}
+                    <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg text-[11px]">
+                      <Scale className="w-3.5 h-3.5 text-[#C5A059]" />
+                      <span className="font-semibold text-slate-700">
+                        {item.court}
+                      </span>
                     </span>
                   )}
                   {item.year && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {item.year}
+                    <span className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                      <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                      <span>{item.year}</span>
                     </span>
                   )}
                   {item.case_no && (
-                    <span className="flex items-center gap-1">
-                      <FileText className="w-3.5 h-3.5" />
-                      {item.case_no}
+                    <span className="flex items-center gap-1.5 text-slate-400 font-mono text-[11px]">
+                      <FileText className="w-3.5 h-3.5 text-slate-300" />
+                      <span>{item.case_no}</span>
                     </span>
                   )}
                 </div>
 
+                {/* Excerpt Summary Snippet */}
                 {item.snippet && (
-                  <p className="text-sm text-slate-400 leading-relaxed">
+                  <p className="text-slate-600 text-sm leading-relaxed font-normal bg-slate-50/50 p-3.5 border border-slate-100 rounded-xl">
                     {highlight(item.snippet)}
                   </p>
                 )}
 
-                {/* Expand / collapse trigger */}
+                {/* Detailed Sheet Expand Trigger Toggle */}
                 <button
                   type="button"
                   onClick={() => handleToggleExpand(item._id)}
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-sky-400 hover:text-sky-300 transition-colors"
+                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#1E3A8A] hover:text-[#7A0913] transition-colors uppercase tracking-wider"
                 >
                   {isExpanded ? (
                     <>
-                      <ChevronUp className="w-3.5 h-3.5" />
-                      Hide full judgment
+                      <ChevronUp className="w-3.5 h-3.5 text-[#C5A059]" />
+                      <span>Collapse Brief</span>
                     </>
                   ) : (
                     <>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                      Read full judgment
+                      <ChevronDown className="w-3.5 h-3.5 text-[#C5A059]" />
+                      <span>Access Full Judgment</span>
                     </>
                   )}
                 </button>
 
-                {/* Expanded full judgment */}
+                {/* Luxury Sheet Reveal Pipeline */}
                 {isExpanded && (
-                  <div className="mt-4 pt-4 border-t border-white/[0.08]">
+                  <div className="mt-4 pt-4 border-t border-slate-200/60">
                     {isFullTextLoading ? (
-                      <div className="flex items-center gap-2 text-sm text-slate-400 py-4">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Loading full judgment...
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase py-6 tracking-widest animate-pulse justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin text-[#7A0913]" />
+                        <span>Decrypting Legal Precedent...</span>
                       </div>
                     ) : fullTextError ? (
-                      <p className="text-sm text-red-400">{fullTextError}</p>
+                      <p className="text-xs font-semibold text-red-600 bg-red-50 p-3 rounded-xl border border-red-100">
+                        {fullTextError}
+                      </p>
                     ) : (
-                      <div className="max-h-[50vh] sm:max-h-[480px] overflow-y-auto pr-2 sm:pr-3 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+                      <div className="max-h-[50vh] sm:max-h-[450px] overflow-y-auto pr-2 text-sm text-slate-700 leading-relaxed font-sans font-light bg-slate-50 p-4 border border-slate-100 rounded-xl whitespace-pre-wrap shadow-inner [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
                         {highlight(fullTextCache[item._id])}
                       </div>
                     )}

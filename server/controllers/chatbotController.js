@@ -1,9 +1,12 @@
 import Groq from "groq-sdk";
 import axios from "axios";
-import Exa from "exa-js";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const exa = new Exa(process.env.EXA_API_KEY);
+
+// Your internal API base URL
+const INTERNAL_API =
+  process.env.INTERNAL_API_URL ||
+  "https://lawease-ai-bot-production.up.railway.app";
 
 // ─────────────────────────────────────────────────────────────
 // SYSTEM PROMPT
@@ -15,245 +18,157 @@ TONE & RESPONSE STYLE:
 - Match response length to the question. Short question = short answer. Detailed question = detailed answer.
 - Be direct. Give the answer first, explanation after.
 - Be conversational and natural — not like a textbook, not like a chatbot.
-- Respond in the same language the user writes in (Urdu or English). If they mix both, mix both.
+- ALWAYS respond in English only, regardless of the language the lawyer writes in (English, Urdu, or Roman Urdu). Understand their query in whatever language it's written, but your reply must be English.
 - Never say "As an AI..." or "I cannot provide legal advice..."
 
 FOLLOW-UP QUESTIONS — STRICT:
 - Ask MAXIMUM 1 follow-up question per response.
 - Only ask if the query is genuinely too vague to research.
-  Vague: "find me some cases" → ask one clarifying question.
-  Clear enough: "cases about breach of contract in property deals" → proceed immediately.
 - If you can make a reasonable assumption — MAKE IT and proceed. Do not stall.
 - Never fire a list of questions at the lawyer.
 - Do NOT end with generic offers like "would you like to know more?" or "shall I explain?"
-- End substantive answers with a short practical/tactical note relevant to the case —
-  e.g. "Is argument ko strengthen karne ke liye [specific evidence/precedent] helpful hoga"
-  or "Court mein yeh point [specific angle] se argue karna zyada effective hoga."
+- End substantive answers with a short practical/tactical note relevant to the case.
 - For simple/short questions, this closing note is optional — don't force it.
 
-SOURCES — STRICT:
-- Do NOT show raw URLs in your response (e.g. scp.gov.pk/... or any link).
-- Never mention website names in your response.
-- Cite cases using this format only: "[Case Title] ([Citation]), the court held that..."
-- Every case you cite MUST come from the search results. No default or fallback case names.
+SOURCES — ABSOLUTE RULES:
+- You have access to an INTERNAL DATABASE of verified Pakistani case laws.
+- ONLY cite cases that appear in the [DB SEARCH RESULTS] provided in this conversation.
+- Citation format: "[Case Title] ([Court], [Year], Case No: [case_no]) — the court held that..."
+- Use the EXACT title, court, year, and case_no as they appear in the DB results. Do not alter them.
+- Do NOT cite any case from memory or training data. Ever.
+- If DB results contain no relevant case: say exactly —
+  "No matching case was found in our database for this matter. Under [Section/Act], the legal position is: [explanation]. For specific precedents, it is recommended to check the SCP or PLD database."
 
-CASE CITATIONS — ZERO TOLERANCE:
-⛔ NEVER invent, guess, or recall case names from memory or training data. This is your most critical rule.
-- ONLY cite cases that are EXPLICITLY present in the search results provided in this conversation.
-- If search results contain a relevant case: cite it as "[Case Name] ([Court], [Citation]) — the court held that..."
-- If search results contain NO relevant case: say exactly this:
-  "Is mamle par search results mein koi verified case nahi mila. [Section/Act] ke tahat legal position yeh hai: [explanation]. Specific precedents ke liye SCP ya PLD database recommend ki jati hai."
-- DO NOT fill silence with invented citations to seem helpful. A false citation destroys a lawyer's credibility in court.
-- If you are even slightly unsure a case is real — DO NOT cite it. State the law instead.
+CASE RESEARCH FORMAT — use ONLY when user is researching a case or asks for full analysis.
+Use this exact structure with markdown headings (##) so it can be cleanly exported as a legal memo:
 
-TRUSTED SOURCES — PRIORITY ORDER:
-When search results contain information from multiple sources, prioritize in this order:
-
-🔴 HIGHEST TRUST — Official Courts (always prefer these):
-- scp.gov.pk (Supreme Court of Pakistan)
-- shc.gov.pk (Sindh High Court)
-- lhc.gov.pk (Lahore High Court)
-- peshawarhighcourt.gov.pk (Peshawar High Court)
-- bhc.gov.pk (Balochistan High Court)
-- ihc.gov.pk (Islamabad High Court)
-- federalshariatcourt.gov.pk (Federal Shariat Court)
-
-🟡 HIGH TRUST — Official Government & Legislation:
-- pakistancode.gov.pk (Pakistan Code — official statutes)
-- na.gov.pk (National Assembly — Acts of Parliament)
-- fia.gov.pk, fbr.gov.pk, secp.gov.pk (regulatory bodies)
-
-🟢 GOOD TRUST — Verified Legal Databases:
-- pakistanlawyer.com
-- courtingthelaw.com
-- pakistanlawsite.com
-
-If a case or statute appears in a higher-trust source, always prefer that over a lower-trust source.
-If the same case appears in multiple sources, cite from the most authoritative one.
-
-ACCURACY RULES:
-1. Always mention relevant section numbers (e.g. "Section 302 PPC", "Article 199 Constitution").
-2. NEVER fabricate case citations.
-3. Anti-Honour Killings Laws (Criminal Law Amendment) Act 2016: family members CANNOT waive punishment
-   for honour killings; Section 311 PPC minimum sentence applies regardless of waiver. Do not state
-   that ghairat/honour reduces sentencing via Qisas and Diyat.
-4. If you truly have no information: "I don't have enough verified information on this — 
-   recommend checking SCP/PLD database or a senior legal professional."
-
-BEFORE EVERY RESPONSE — MANDATORY CHECK:
-Before writing, ask yourself:
-1. Did search results above contain a relevant case? YES → cite it properly. NO → state the law only, no case names.
-2. Am I about to write a case name NOT in the search results? YES → delete it immediately.
-
-CASE RESEARCH FORMAT — use ONLY when user is clearly researching a case or asks for full analysis:
-
-⚖️ Applicable Law
+## Applicable Law
 [relevant sections/articles — no fluff]
 
-📖 What the Law Says
+## Legal Position
 [clear, plain language explanation]
 
-🏛️ Case References
-[cite from search results ONLY — if none found: "Search results mein koi verified case nahi mila. SCP/PLD database par research recommend ki jati hai."]
+## Case References
+[cite from DB results ONLY — if none: state the law, no invented citations]
 
-🔍 How It Applies
+## Application to the Present Matter
 [connect to user's specific situation]
 
-💡 Bottom Line
-[one clear concluding sentence + practical tactical note]
+## Conclusion
+[one clear concluding paragraph + practical tactical note]
 
-A user asking a quick question deserves a quick answer. Save the full format for when they need it.`;
+FORMATTING RULES FOR EXPORT-READY OUTPUT:
+- Do NOT use emojis anywhere in the response (memos must look professional when exported to Word/PDF).
+- Use markdown headings (##), bold (**text**), and numbered/bulleted lists where appropriate — this gets converted into a formatted document.
+- Keep paragraphs concise and well-structured, as this content may be directly exported into a client memo or court submission draft.
+- A user asking a quick question deserves a quick answer — only use the full memo format above when the query genuinely calls for case research or detailed analysis.`;
 
 // ─────────────────────────────────────────────────────────────
-// PDF HELPER
+// STEP 1: LLM extracts search keywords from lawyer's query
 // ─────────────────────────────────────────────────────────────
-const JINA_READER_PREFIX = "https://r.jina.ai/";
-const MAX_PDF_CHARS = 6000;
+const extractKeywords = async (message, history = []) => {
+  // Build a brief context from recent history so LLM understands follow-up queries
+  const recentContext = history
+    .slice(-4)
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
 
-const isPdfUrl = (url = "") => url.toLowerCase().split("?")[0].endsWith(".pdf");
+  const prompt = `You are a legal search assistant. Extract the most effective search keywords from the lawyer's query to search a Pakistani case law database.
 
-const fetchPdfViaJina = async (url) => {
+Conversation context:
+${recentContext || "(none)"}
+
+Current query: "${message}"
+
+Rules:
+- Return 1 to 3 search keyword strings (each is a separate search)
+- Each keyword should be short (2-5 words), specific, and in English
+- Focus on legal terms: offence name, section number, court, legal concept
+- If the query mentions specific facts (e.g. "property dispute in Karachi"), extract the legal concept ("property dispute" or "possession suit")
+- For follow-up queries like "find more" or "related cases", use context to determine keywords
+- Return ONLY a JSON array of strings, nothing else. Example: ["wrongful dismissal", "termination without notice"]`;
+
   try {
-    const headers = process.env.JINA_API_KEY
-      ? { Authorization: `Bearer ${process.env.JINA_API_KEY}` }
-      : {};
-    const response = await axios.get(`${JINA_READER_PREFIX}${url}`, {
-      timeout: 10000,
-      headers,
+    const completion = await groq.chat.completions.create({
+      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 100,
+      temperature: 0.1,
     });
-    let text =
-      typeof response.data === "string"
-        ? response.data
-        : JSON.stringify(response.data);
-    return text.length > MAX_PDF_CHARS
-      ? text.slice(0, MAX_PDF_CHARS) + "... [truncated]"
-      : text;
-  } catch {
-    return null;
+
+    const raw = completion.choices[0]?.message?.content?.trim() || "[]";
+    // Strip markdown fences if present
+    const clean = raw.replace(/```json|```/g, "").trim();
+    const keywords = JSON.parse(clean);
+    return Array.isArray(keywords) ? keywords.slice(0, 3) : [];
+  } catch (err) {
+    console.error("Keyword extraction error:", err.message);
+    // Fallback: use the raw message as keyword
+    return [message.slice(0, 60)];
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// TAVILY — Keyword-based case law + statute search
+// STEP 2: Search internal DB for each keyword
 // ─────────────────────────────────────────────────────────────
-const tavilySearch = async (query) => {
+const searchInternalDB = async (keywords, authToken) => {
+  if (!keywords.length) return null;
+
   try {
-    // Primary: case law search — NO include_domains restriction
-    const caseRes = await axios.post(
-      "https://api.tavily.com/search",
-      {
-        api_key: process.env.TAVILY_API_KEY,
-        query: `Pakistan court judgment case law ${query} PLD SCMR`,
-        search_depth: "advanced",
-        max_results: 5,
-        include_answer: true,
-        include_raw_content: false,
-      },
-      { timeout: 7000 },
+    // Run all keyword searches in parallel
+    const searchPromises = keywords.map((kw) =>
+      axios
+        .get(`${INTERNAL_API}/api/search`, {
+          params: { keyword: kw },
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+          timeout: 5000,
+        })
+        .then((res) => res.data.results || [])
+        .catch(() => []),
     );
-    const caseResults = caseRes.data.results || [];
 
-    // Secondary: statute search — only if case results are sparse
-    let statuteResults = [];
-    if (caseResults.length < 2) {
-      const statRes = await axios.post(
-        "https://api.tavily.com/search",
-        {
-          api_key: process.env.TAVILY_API_KEY,
-          query: `Pakistan law statute section act ${query}`,
-          search_depth: "basic",
-          max_results: 3,
-          include_answer: true,
-          include_raw_content: false,
-        },
-        { timeout: 7000 },
-      );
-      statuteResults = statRes.data.results || [];
-    }
+    const allResultArrays = await Promise.all(searchPromises);
 
-    const allResults = [...caseResults, ...statuteResults];
-    if (!allResults.length) return null;
-
-    // Enrich PDFs via Jina
-    const enriched = await Promise.all(
-      allResults.map(async (r) => {
-        if (isPdfUrl(r.url)) {
-          const pdfText = await fetchPdfViaJina(r.url);
-          return { ...r, content: pdfText || r.content || "" };
+    // Flatten + deduplicate by _id
+    const seen = new Set();
+    const combined = [];
+    for (const arr of allResultArrays) {
+      for (const item of arr) {
+        if (!seen.has(item._id)) {
+          seen.add(item._id);
+          combined.push(item);
         }
-        return r;
-      }),
-    );
-
-    const valid = enriched.filter(
-      (r) => r.content && r.content.trim().length > 50,
-    );
-    if (!valid.length) return null;
-
-    let context = `=== TAVILY SEARCH RESULTS for "${query}" ===\n`;
-    context += `IMPORTANT: Only cite cases that appear below. Never use memory for citations.\n\n`;
-
-    const casePart = valid.filter((r) =>
-      caseResults.some((c) => c.url === r.url),
-    );
-    const statPart = valid.filter((r) =>
-      statuteResults.some((s) => s.url === r.url),
-    );
-
-    if (casePart.length) {
-      context += `--- CASE LAW ---\n`;
-      casePart.forEach((r, i) => {
-        context += `[CASE ${i + 1}] ${r.title}\n${r.content}\n\n`;
-      });
-    }
-    if (statPart.length) {
-      context += `--- STATUTES ---\n`;
-      statPart.forEach((r, i) => {
-        context += `[LAW ${i + 1}] ${r.title}\n${r.content}\n\n`;
-      });
+      }
     }
 
-    return context;
-  } catch (err) {
-    console.error("Tavily error:", err.message);
-    return null;
-  }
-};
+    if (!combined.length) return null;
 
-// ─────────────────────────────────────────────────────────────
-// EXA — Semantic similarity search for case law
-// ─────────────────────────────────────────────────────────────
-const exaSearch = async (query) => {
-  try {
-    const result = await exa.searchAndContents(
-      `Pakistani court judgment or case law about: ${query}`,
-      {
-        type: "neural",
-        numResults: 3,
-        text: { maxCharacters: 2000 },
-      },
-    );
+    // Build context string for LLM — exact fields from your DB
+    let context = `=== DB SEARCH RESULTS ===\n`;
+    context += `CRITICAL: Only cite cases listed below. Use exact title, court, year, case_no as shown.\n\n`;
 
-    const results = result.results || [];
-    if (!results.length) return null;
-
-    let context = `=== EXA SEMANTIC SEARCH RESULTS ===\n`;
-    context += `(Semantically similar cases — cite only if directly relevant)\n\n`;
-    results.forEach((r, i) => {
-      context += `[SIMILAR CASE ${i + 1}] ${r.title || "Untitled"}\n${r.text || ""}\n\n`;
+    combined.forEach((item, i) => {
+      context += `[CASE ${i + 1}]\n`;
+      context += `Title: ${item.title || "N/A"}\n`;
+      context += `Court: ${item.court || "N/A"}\n`;
+      context += `Year: ${item.year || "N/A"}\n`;
+      context += `Case No: ${item.case_no || "N/A"}\n`;
+      context += `Result: ${item.result || "N/A"}\n`;
+      context += `Summary: ${item.snippet || "N/A"}\n`;
+      context += `---\n`;
     });
 
-    return context;
+    return { context, count: combined.length };
   } catch (err) {
-    console.error("Exa error:", err.message);
+    console.error("Internal DB search error:", err.message);
     return null;
   }
 };
 
 // ─────────────────────────────────────────────────────────────
-// SEARCH TRIGGER — Skip only for pure greetings
+// SKIP SEARCH — Pure greetings / ack messages
 // ─────────────────────────────────────────────────────────────
-const needsWebSearch = (message) => {
+const isGreeting = (message) => {
   const greetings = [
     "hello",
     "hi",
@@ -276,35 +191,7 @@ const needsWebSearch = (message) => {
   ];
   const lower = message.toLowerCase().trim();
   const words = lower.split(/\s+/);
-
-  // Very short message AND it's a greeting → skip search
-  if (words.length <= 3 && greetings.some((g) => lower.includes(g)))
-    return false;
-
-  return true;
-};
-
-// ─────────────────────────────────────────────────────────────
-// CITATION VALIDATOR — Post-response hallucination check
-// ─────────────────────────────────────────────────────────────
-const validateCitations = (reply, searchContext) => {
-  // Extract all Pakistani legal citations from the model's reply
-  // Matches: PLD 2021 SC 488, SCMR 2019, MLD 2020, CLC 2018, PTD 2017 etc.
-  const citationPattern = /(PLD|SCMR|MLD|CLC|PTD|YLR|PLJR)\s+\d{4}/gi;
-  const foundCitations = reply.match(citationPattern) || [];
-
-  if (!foundCitations.length) return { isValid: true, unverified: [] };
-  if (!searchContext) return { isValid: false, unverified: foundCitations };
-
-  // Check each citation against search results
-  const unverified = foundCitations.filter(
-    (citation) => !searchContext.toLowerCase().includes(citation.toLowerCase()),
-  );
-
-  return {
-    isValid: unverified.length === 0,
-    unverified,
-  };
+  return words.length <= 3 && greetings.some((g) => lower.includes(g));
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -317,32 +204,45 @@ export const chat = async (req, res) => {
     if (!message || typeof message !== "string")
       return res.status(400).json({ message: "message is required" });
 
-    // Keep last 10 messages for better context in ongoing legal research
+    // Get auth token from request (lawyer is logged in)
+    const authToken = req.headers.authorization?.replace("Bearer ", "") || null;
+
+    // Keep last 10 messages for context
     const chatMessages = history
       .filter((m) => ["user", "assistant"].includes(m.role))
       .slice(-10)
       .map((m) => ({ role: m.role, content: String(m.content) }));
 
-    // Run Tavily + Exa in parallel — hard 6s cap on both combined
-    let searchContext = null;
+    // ── RAG Pipeline ──────────────────────────────────────────
+    let dbContext = null;
+    let casesFound = 0;
 
-    if (needsWebSearch(message)) {
-      const [tavilyResult, exaResult] = await Promise.race([
-        Promise.all([tavilySearch(message), exaSearch(message)]),
-        new Promise((resolve) => setTimeout(() => resolve([null, null]), 6000)),
-      ]);
+    if (!isGreeting(message)) {
+      // Step 1: Extract keywords using LLM
+      const keywords = await extractKeywords(message, chatMessages);
+      console.log("Extracted keywords:", keywords);
 
-      const parts = [tavilyResult, exaResult].filter(Boolean);
-      if (parts.length) searchContext = parts.join("\n\n");
+      // Step 2: Search internal DB
+      if (keywords.length) {
+        const dbResult = await searchInternalDB(keywords, authToken);
+        if (dbResult) {
+          dbContext = dbResult.context;
+          casesFound = dbResult.count;
+          console.log(`DB returned ${casesFound} cases`);
+        }
+      }
     }
 
+    // ── Build messages for final LLM call ─────────────────────
     const messages = [
       { role: "system", content: SYSTEM_PROMPT },
-      ...(searchContext ? [{ role: "system", content: searchContext }] : []),
+      // Inject DB results as system context so LLM treats them as ground truth
+      ...(dbContext ? [{ role: "system", content: dbContext }] : []),
       ...chatMessages,
       { role: "user", content: message },
     ];
 
+    // ── Final LLM response ────────────────────────────────────
     const completion = await groq.chat.completions.create({
       model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
       messages,
@@ -350,21 +250,11 @@ export const chat = async (req, res) => {
       temperature: 0.2,
     });
 
-    let reply =
+    const reply =
       completion.choices[0]?.message?.content ||
       "I don't have enough verified information on this — recommend checking SCP/PLD database or a senior legal professional.";
 
-    // Post-response citation validation
-    const { isValid, unverified } = validateCitations(reply, searchContext);
-    if (!isValid && unverified.length > 0) {
-      console.warn("⚠️ Unverified citations detected:", unverified);
-      reply +=
-        "\n\n---\n⚠️ **Note:** " +
-        `The citation(s) ${unverified.join(", ")} could not be verified in current search results. ` +
-        "Please confirm via SCP or PLD database before use in court.";
-    }
-
-    res.json({ reply });
+    res.json({ reply, meta: { casesFound } });
   } catch (err) {
     console.error("Chatbot error:", err);
     res.status(500).json({ message: "AI service unavailable" });
