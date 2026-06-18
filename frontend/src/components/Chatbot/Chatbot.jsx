@@ -7,6 +7,7 @@ import {
   Plus,
   MessageSquare,
   ChevronLeft,
+  PanelLeft,
   Scale,
   Download,
   FileText,
@@ -25,7 +26,7 @@ const GUEST_COUNT_KEY = "lawease_guest_count";
 const WELCOME_MSG = {
   role: "assistant",
   content:
-    "**Welcome to LawEase AI Research Assistant** ⚖️\n\nI can help you with:\n\n• Case law research\n• Relevant precedents\n• Legal arguments\n• Statutory provisions\n• Petition and notice drafting\n• Legal analysis\n\nDescribe your legal matter or enter a legal question to begin.",
+    "**Welcome to LawEase AI Research Assistant**\n\nI can help you with:\n\n• Case law research\n• Relevant precedents\n• Legal arguments\n• Statutory provisions\n• Petition and notice drafting\n• Legal analysis\n\nDescribe your legal matter or enter a legal question to begin.",
 };
 
 const newChatObj = () => ({
@@ -35,15 +36,11 @@ const newChatObj = () => ({
   createdAt: Date.now(),
 });
 
-// ── FIX #1: Single initialChat — both states use same ID ──────────────────
 const initialChat = newChatObj();
 
 // ─────────────────────────────────────────────────────────────
-// EXPORT HELPERS — parse simple markdown (##, **bold**, lists) into
-// structured blocks, then render to .docx or .pdf
+// EXPORT HELPERS — parse simple markdown into structured blocks
 // ─────────────────────────────────────────────────────────────
-
-// Parses markdown text into a flat list of typed line objects
 const parseMarkdownBlocks = (markdown) => {
   const lines = markdown.split("\n");
   const blocks = [];
@@ -69,7 +66,6 @@ const parseMarkdownBlocks = (markdown) => {
   return blocks;
 };
 
-// Splits a line of text into { text, bold } runs based on **bold** markers
 const splitBoldRuns = (text) => {
   const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
   return parts.map((part) => {
@@ -89,12 +85,10 @@ const buildFilename = (title, ext) => {
   return `${safe || "LawEase-Research"}.${ext}`;
 };
 
-// ── Export to Word (.docx) ─────────────────────────────────────────────
 const exportToWord = async (content, chatTitle) => {
   const blocks = parseMarkdownBlocks(content);
   const children = [];
 
-  // Document header
   children.push(
     new Paragraph({
       text: "LawEase AI — Legal Research Memo",
@@ -163,7 +157,6 @@ const exportToWord = async (content, chatTitle) => {
   URL.revokeObjectURL(url);
 };
 
-// ── Export to PDF ───────────────────────────────────────────────────────
 const exportToPDF = (content, chatTitle) => {
   const blocks = parseMarkdownBlocks(content);
   const pdf = new jsPDF({ unit: "pt", format: "a4" });
@@ -252,7 +245,6 @@ const exportToPDF = (content, chatTitle) => {
   pdf.save(buildFilename(chatTitle, "pdf"));
 };
 
-// ── Export dropdown button shown under each assistant message ─────────
 const ExportMenu = ({ content, chatTitle }) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
@@ -268,26 +260,29 @@ const ExportMenu = ({ content, chatTitle }) => {
   }, []);
 
   return (
-    <div className="relative inline-block mt-2" ref={menuRef}>
+    <div className="relative inline-block mt-2.5" ref={menuRef}>
       <button
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-[#C5A059] border border-slate-700/60 hover:border-[#C5A059]/50 rounded-lg px-2.5 py-1.5 transition-all bg-slate-900/40"
+        className="flex items-center gap-1.5 text-[11px] font-semibold text-[#8B6914] hover:text-[#7A0913] border border-[#C5A059]/35 hover:border-[#7A0913]/30 rounded-md px-2.5 py-1.5 transition-colors duration-150 bg-[#FBF9F4]"
       >
-        <Download size={12} />
-        <span>Export</span>
-        <ChevronDown size={11} className={open ? "rotate-180" : ""} />
+        <Download size={11} strokeWidth={2.25} />
+        <span className="tracking-wide">Export Brief</span>
+        <ChevronDown
+          size={11}
+          className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
-        <div className="absolute z-30 bottom-full mb-1 left-0 bg-[#1E293B] border border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[150px]">
+        <div className="absolute z-30 bottom-full mb-1.5 left-0 bg-white border border-slate-200 rounded-lg shadow-[0_12px_28px_rgba(15,27,61,0.12)] overflow-hidden min-w-[168px]">
           <button
             onClick={() => {
               exportToWord(content, chatTitle);
               setOpen(false);
             }}
-            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-slate-200 hover:bg-slate-800 transition-colors"
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors text-left"
           >
-            <FileText size={14} className="text-blue-400" />
+            <FileText size={14} className="text-blue-700" />
             Export as Word
           </button>
           <button
@@ -295,9 +290,9 @@ const ExportMenu = ({ content, chatTitle }) => {
               exportToPDF(content, chatTitle);
               setOpen(false);
             }}
-            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-slate-200 hover:bg-slate-800 transition-colors border-t border-slate-800"
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-100"
           >
-            <File size={14} className="text-red-400" />
+            <File size={14} className="text-[#7A0913]" />
             Export as PDF
           </button>
         </div>
@@ -309,15 +304,19 @@ const ExportMenu = ({ content, chatTitle }) => {
 const ChatBot = () => {
   const { user } = useAuth();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 768; // open by default on desktop, closed on mobile
+    }
+    return true;
+  });
   const [chats, setChats] = useState([initialChat]);
-  const [activeChatId, setActiveChatId] = useState(initialChat.id); // ← same ID
+  const [activeChatId, setActiveChatId] = useState(initialChat.id);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
 
-  // ── FIX #5: Guest count persisted in localStorage ─────────────────────
   const [userMsgCount, setUserMsgCount] = useState(() => {
     if (typeof window !== "undefined") {
       return parseInt(localStorage.getItem(GUEST_COUNT_KEY) || "0", 10);
@@ -328,21 +327,18 @@ const ChatBot = () => {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
-  // ── FIX #2: Safe activeChat — never undefined ──────────────────────────
   const activeChat = chats.find((c) => c.id === activeChatId) ?? chats[0];
 
   const updateChat = useCallback((id, updater) => {
     setChats((prev) => prev.map((c) => (c.id === id ? updater(c) : c)));
   }, []);
 
-  // ── Load / reset on auth change ────────────────────────────────────────
   useEffect(() => {
     if (user) {
       setUserMsgCount(0);
       localStorage.removeItem(GUEST_COUNT_KEY);
       loadChatHistory();
     } else {
-      // User logged out — reset to a fresh single chat
       const fresh = newChatObj();
       setChats([fresh]);
       setActiveChatId(fresh.id);
@@ -358,12 +354,10 @@ const ChatBot = () => {
     inputRef.current?.focus();
   }, [activeChatId]);
 
-  // ── API helpers ────────────────────────────────────────────────────────
   const getAuthHeader = () => ({
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
 
-  // ── FIX #3: loadChatHistory properly replaces initial chat ─────────────
   const loadChatHistory = async () => {
     setHistoryLoading(true);
     try {
@@ -445,9 +439,8 @@ const ChatBot = () => {
   const sendMessage = async () => {
     if (!input.trim() || loading || limitReached) return;
     const text = input.trim();
-    const currentChatId = activeChatId; // capture before any async
+    const currentChatId = activeChatId;
 
-    // ── FIX #5: Persist guest count ────────────────────────────────────
     if (!user) {
       const next = userMsgCount + 1;
       setUserMsgCount(next);
@@ -468,7 +461,6 @@ const ChatBot = () => {
     if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
 
-    // Only send user/assistant turns — exclude welcome assistant msg
     const history = updatedMessages
       .filter(
         (m) => !(m.role === "assistant" && m.content === WELCOME_MSG.content),
@@ -483,7 +475,6 @@ const ChatBot = () => {
 
       const assistantMsg = { role: "assistant", content: res.data.reply };
       const finalMessages = [...updatedMessages, assistantMsg];
-
       const newTitle = isFirst ? text.slice(0, 38) : activeChat.title;
 
       updateChat(currentChatId, (c) => ({
@@ -492,7 +483,6 @@ const ChatBot = () => {
         title: newTitle,
       }));
 
-      // Build the full updated chats array for saving
       const updatedChats = chats.map((c) =>
         c.id === currentChatId
           ? { ...c, messages: finalMessages, title: newTitle }
@@ -517,56 +507,87 @@ const ChatBot = () => {
   };
 
   return (
-    <div className="flex w-full min-h-screen h-[calc(100vh-64px)] pt-19 bg-[#0B0F19] overflow-hidden text-slate-200 antialiased unified-panel-wrapper">
-      {/* SIDEBAR */}
+    <div className="flex w-full min-h-screen h-[calc(100vh-64px)] pt-16 bg-[#F8FAFC] overflow-hidden text-slate-700 font-sans antialiased relative">
+      {/* Ambient backdrop washes — quiet, not decorative noise */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-10 right-10 w-[500px] h-[500px] bg-gradient-to-br from-blue-100/25 to-indigo-50/35 rounded-full blur-[130px] opacity-70" />
+        <div className="absolute bottom-10 left-10 w-[400px] h-[400px] bg-gradient-to-tr from-[#7A0913]/[0.04] to-amber-50/25 rounded-full blur-[110px] opacity-50" />
+      </div>
+
+      {/* SIDEBAR BACKDROP — mobile only, closes drawer on tap outside */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR — overlay drawer on mobile, inline column on desktop */}
       <aside
-        className={`bg-[#1E293B] border-r border-slate-800/80 text-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden h-full z-20 shadow-[4px_0_24px_rgba(0,0,0,0.3)] ${
-          sidebarOpen ? "w-64 min-w-64" : "w-0 min-w-0"
-        }`}
+        className={`bg-white border-r border-slate-200/70 flex flex-col overflow-hidden shadow-[6px_0_28px_rgba(15,27,61,0.02)]
+          fixed md:static inset-y-0 left-0 z-30 h-full
+          transition-transform md:transition-[width] duration-300 ease-in-out
+          w-72 md:w-64 md:min-w-64
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          ${sidebarOpen ? "md:w-64" : "md:w-0 md:min-w-0"}
+        `}
       >
-        <div className="p-4 border-b border-slate-800/60 shrink-0">
+        <div className="p-4 border-b border-slate-100 shrink-0 flex items-center gap-2">
           <button
-            className="w-full py-3 px-4 rounded-xl border border-slate-700/60 bg-slate-800/80 text-slate-200 hover:bg-[#7A0913] hover:border-transparent font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-md tracking-wide"
-            onClick={createNewChat}
+            className="flex-1 py-2.5 px-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-[#7A0913] hover:text-white hover:border-transparent font-semibold text-[11px] uppercase tracking-[0.08em] flex items-center justify-center gap-2 transition-colors duration-200 shadow-sm"
+            onClick={() => {
+              createNewChat();
+              setSidebarOpen(false);
+            }}
           >
-            <Plus size={16} /> New Research Session
+            <Plus size={14} strokeWidth={2.5} /> New Research Session
+          </button>
+          <button
+            className="md:hidden p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            onClick={() => setSidebarOpen(false)}
+            title="Close sidebar"
+          >
+            <ChevronLeft size={15} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1 chunk-scrollbar custom-sidebar-list">
+        <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
           {chats.map((chat) => {
             const isActive = chat.id === activeChatId;
             return (
               <div
                 key={chat.id}
-                className={`group px-3 py-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all ${
+                className={`group px-3 py-2.5 rounded-lg cursor-pointer flex items-center gap-2.5 transition-colors duration-150 ${
                   isActive
-                    ? "bg-[#7A0913] text-white font-medium shadow-[0_4px_12px_rgba(122,9,19,0.3)] border border-red-800/30"
-                    : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                    ? "bg-[#7A0913] text-white font-semibold shadow-[0_4px_14px_rgba(122,9,19,0.18)]"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
-                onClick={() => setActiveChatId(chat.id)}
+                onClick={() => {
+                  setActiveChatId(chat.id);
+                  setSidebarOpen(false);
+                }}
               >
                 <MessageSquare
-                  size={16}
+                  size={14}
                   className={
                     isActive
                       ? "text-white"
-                      : "text-slate-500 group-hover:text-slate-400"
+                      : "text-slate-400 group-hover:text-slate-600"
                   }
                 />
-                <span className="flex-1 text-sm truncate tracking-wide">
+                <span className="flex-1 text-xs truncate tracking-wide">
                   {chat.title}
                 </span>
                 <button
-                  className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all shrink-0 ${
+                  className={`opacity-0 group-hover:opacity-100 p-1 rounded-md transition-colors shrink-0 ${
                     isActive
                       ? "text-red-200 hover:text-white"
-                      : "text-slate-500 hover:text-red-400"
+                      : "text-slate-400 hover:text-red-600"
                   }`}
                   onClick={(e) => deleteThisChat(chat.id, e)}
-                  title="Delete"
+                  title="Delete session"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={13} />
                 </button>
               </div>
             );
@@ -574,60 +595,71 @@ const ChatBot = () => {
         </div>
       </aside>
 
-      {/* MAIN CHAT AREA */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#0F172A] h-full relative shadow-inner">
+      {/* MAIN CHAT CANVAS */}
+      <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative z-10">
         {/* HEADER */}
-        <div className="bg-[#1E293B] border-b border-slate-800/80 px-6 py-4 flex items-center justify-between shrink-0 z-10 shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="bg-white/85 backdrop-blur-md border-b border-slate-200/60 px-3.5 md:px-6 py-3.5 flex items-center justify-between shrink-0 shadow-[0_1px_0_rgba(15,27,61,0.02)]">
+          <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
             <button
-              className="p-2 rounded-xl bg-slate-800 border border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600 transition-all shrink-0"
+              className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
               onClick={() => setSidebarOpen((p) => !p)}
               title="Toggle sidebar"
             >
               {sidebarOpen ? (
-                <ChevronLeft size={16} />
+                <ChevronLeft size={15} />
               ) : (
-                <MessageSquare size={16} />
+                <PanelLeft size={15} />
               )}
             </button>
-            <Scale size={18} className="text-[#C5A059] shrink-0" />
-            <h2 className="text-sm font-semibold text-slate-200 tracking-wide truncate">
+            <Scale
+              size={16}
+              className="text-[#C5A059] shrink-0 hidden sm:block"
+            />
+            <h2 className="text-[13px] font-bold text-slate-800 tracking-wide truncate font-serif">
               {activeChat?.title || "LawEase AI Research Assistant"}
             </h2>
           </div>
+          <button
+            className="md:hidden p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:text-[#7A0913] hover:bg-slate-100 transition-colors shrink-0"
+            onClick={() => {
+              createNewChat();
+            }}
+            title="New research session"
+          >
+            <Plus size={15} strokeWidth={2.5} />
+          </button>
         </div>
 
-        {/* MESSAGES */}
-        <div className="flex-1 overflow-y-auto pt-8 pb-8 space-y-6 chunk-scrollbar bg-radial from-[#1e293b]/20 via-transparent to-transparent">
-          {/* History loading spinner */}
+        {/* MESSAGE FEED */}
+        <div className="flex-1 overflow-y-auto pt-6 pb-6 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
           {historyLoading && (
-            <div className="flex justify-center pt-12">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 rounded-full bg-slate-600 animate-bounce" />
-                <span className="w-2 h-2 rounded-full bg-slate-600 animate-bounce [animation-delay:0.2s]" />
-                <span className="w-2 h-2 rounded-full bg-slate-600 animate-bounce [animation-delay:0.4s]" />
+            <div className="flex justify-center pt-8">
+              <div className="flex gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#7A0913]/40 animate-bounce" />
+                <span className="w-2 h-2 rounded-full bg-[#7A0913]/40 animate-bounce [animation-delay:0.2s]" />
+                <span className="w-2 h-2 rounded-full bg-[#7A0913]/40 animate-bounce [animation-delay:0.4s]" />
               </div>
             </div>
           )}
 
           {user && historyLoaded && activeChat?.messages.length > 1 && (
-            <div className="text-center text-[11px] uppercase tracking-widest text-slate-600 font-semibold my-2">
-              — Previous conversation loaded —
+            <div className="text-center text-[10px] uppercase tracking-[0.18em] text-slate-400 font-bold my-2">
+              Previous Conversation Loaded
             </div>
           )}
 
           {activeChat?.messages.length === 1 && !loading && !historyLoading && (
-            <div className="flex flex-col items-center justify-center h-full max-w-lg mx-auto text-center px-4 pt-4">
-              <div className="w-24 h-24 rounded-3xl bg-linear-to-br from-[#1E293B] to-[#111827] border border-slate-700/50 flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_20px_rgba(122,9,19,0.15)] mb-6 text-[#C5A059]">
-                <Scale size={36} />
+            <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto text-center px-4 pt-12">
+              <div className="w-20 h-20 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-md mb-5 text-[#C5A059] relative">
+                <Scale size={30} strokeWidth={1.75} />
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#7A0913] border-2 border-white" />
               </div>
-              <h3 className="text-base font-bold text-slate-200 mb-3 tracking-wide">
-                Case Law & Legal Research
+              <h3 className="text-lg font-bold text-slate-900 mb-2 tracking-tight font-serif">
+                Case Law &amp; Legal Research
               </h3>
-              <p className="text-sm text-slate-400/80 leading-relaxed max-w-sm">
-                Research Pakistani case law, locate precedents, analyze
-                statutes, prepare legal arguments, and assist with drafting
-                legal documents.
+              <p className="text-[13px] text-slate-400 font-light leading-relaxed">
+                Search verified Pakistani case law, locate precedents, and draft
+                research memos ready for export.
               </p>
             </div>
           )}
@@ -638,41 +670,55 @@ const ChatBot = () => {
             return (
               <div
                 key={i}
-                className={`flex flex-col w-full px-4 md:px-12 lg:px-24 xl:px-32 ${
+                className={`flex flex-col w-full px-3 sm:px-4 md:px-12 lg:px-20 xl:px-32 ${
                   isUser ? "items-end" : "items-start"
                 }`}
               >
                 <div
-                  className={`max-w-[78%] px-5 py-3.5 rounded-2xl text-sm leading-relaxed tracking-wide shadow-[0_4px_16px_rgba(0,0,0,0.25)] border ${
+                  className={`max-w-[90%] sm:max-w-[80%] px-4.5 py-3.5 rounded-2xl text-[13.5px] leading-relaxed shadow-[0_2px_10px_rgba(15,27,61,0.03)] border ${
                     isUser
-                      ? "bg-gradient-to-r from-[#1E40AF] to-[#1D4ED8] text-white font-medium rounded-tr-sm border-blue-600/40"
-                      : "bg-[#1E293B] text-slate-100 border-l-4 border-l-[#7A0913] border-slate-800 rounded-tl-sm"
+                      ? "bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] text-white font-medium rounded-tr-sm border-blue-700/20"
+                      : "bg-white text-slate-800 border-l-[3px] border-l-[#C5A059] border-slate-200/70 rounded-tl-sm"
                   }`}
                 >
                   <ReactMarkdown
                     components={{
+                      h2: ({ node, ...props }) => (
+                        <h2
+                          className={`font-serif text-[15px] font-bold mt-3 mb-1.5 first:mt-0 ${
+                            isUser ? "text-white" : "text-[#0F1B3D]"
+                          }`}
+                          {...props}
+                        />
+                      ),
                       p: ({ node, ...props }) => (
-                        <p className="mb-2 last:mb-0" {...props} />
+                        <p className="mb-1.5 last:mb-0" {...props} />
                       ),
                       strong: ({ node, ...props }) => (
                         <strong
                           className={
                             isUser
                               ? "text-white font-bold"
-                              : "text-[#C5A059] font-bold"
+                              : "text-[#7A0913] font-bold"
                           }
                           {...props}
                         />
                       ),
                       ul: ({ node, ...props }) => (
                         <ul
-                          className="list-disc pl-5 my-2 space-y-1.5"
+                          className="list-disc pl-5 my-1.5 space-y-1"
+                          {...props}
+                        />
+                      ),
+                      ol: ({ node, ...props }) => (
+                        <ol
+                          className="list-decimal pl-5 my-1.5 space-y-1"
                           {...props}
                         />
                       ),
                       code: ({ node, ...props }) => (
                         <code
-                          className="bg-slate-900 text-red-400 px-1.5 py-0.5 rounded text-xs border border-slate-800"
+                          className="bg-slate-50 text-[#7A0913] px-1.5 py-0.5 rounded text-xs border border-slate-200 font-mono"
                           {...props}
                         />
                       ),
@@ -682,7 +728,6 @@ const ChatBot = () => {
                   </ReactMarkdown>
                 </div>
 
-                {/* Export button — only on substantive assistant replies */}
                 {!isUser && !isWelcome && (
                   <ExportMenu
                     content={msg.content}
@@ -694,8 +739,10 @@ const ChatBot = () => {
           })}
 
           {loading && (
-            <div className="flex items-center gap-2 px-4 md:px-12 lg:px-24 xl:px-32 text-sm text-slate-500 tracking-wide">
-              <span className="italic">LawEase is thinking</span>
+            <div className="flex items-center gap-2 px-4 md:px-12 lg:px-20 xl:px-32 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <span className="italic font-light text-slate-400 normal-case font-serif text-[13px]">
+                Assembling analysis
+              </span>
               <div className="flex gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#7A0913] animate-bounce" />
                 <span className="w-1.5 h-1.5 rounded-full bg-[#7A0913] animate-bounce [animation-delay:0.2s]" />
@@ -708,13 +755,13 @@ const ChatBot = () => {
         </div>
 
         {/* INPUT */}
-        <div className="bg-[#1E293B] border-t border-slate-800/80 p-4 md:px-12 lg:px-24 xl:px-32 flex flex-col gap-2 shrink-0 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.3)]">
+        <div className="bg-white border-t border-slate-200 px-3 py-3 sm:p-4 md:px-12 lg:px-20 xl:px-32 flex flex-col shrink-0 w-full shadow-[0_-6px_24px_rgba(15,27,61,0.02)]">
           {limitReached && (
-            <p className="text-center text-xs text-red-400 font-medium mb-1">
-              Free limit reached — please sign up to continue.
+            <p className="text-center text-xs text-[#7A0913] font-bold mb-2 uppercase tracking-wide">
+              Free trial exhausted — please register to continue
             </p>
           )}
-          <div className="flex gap-3 items-end max-w-5xl mx-auto w-full">
+          <div className="flex gap-2.5 sm:gap-3 items-end max-w-4xl mx-auto w-full">
             <textarea
               ref={inputRef}
               rows={1}
@@ -722,16 +769,16 @@ const ChatBot = () => {
               disabled={limitReached}
               placeholder={
                 limitReached
-                  ? "Sign up to continue chatting..."
-                  : "Describe your case, legal issue, or research question..."
+                  ? "Register to continue..."
+                  : "Describe your legal question..."
               }
-              className="flex-1 bg-[#0F172A] border border-slate-700/80 focus:border-blue-500/80 text-slate-200 placeholder-slate-600 text-sm rounded-xl px-4 py-3.5 outline-none resize-none max-h-32 transition-all focus:ring-2 focus:ring-blue-900/30 leading-relaxed shadow-inner"
+              className="flex-1 bg-slate-50 border border-slate-200 focus:border-blue-400 text-slate-800 placeholder-slate-400 text-sm rounded-xl px-3.5 sm:px-4 py-2.5 sm:py-3 outline-none resize-none max-h-28 sm:max-h-32 transition-colors focus:bg-white focus:ring-4 focus:ring-blue-500/5 leading-relaxed shadow-inner"
               onChange={(e) => {
                 if (!limitReached) {
                   setInput(e.target.value);
                   e.target.style.height = "auto";
                   e.target.style.height =
-                    Math.min(e.target.scrollHeight, 128) + "px";
+                    Math.min(e.target.scrollHeight, 112) + "px";
                 }
               }}
               onKeyDown={(e) => {
@@ -744,14 +791,13 @@ const ChatBot = () => {
             <button
               onClick={sendMessage}
               disabled={loading || limitReached || !input.trim()}
-              className="w-12 h-11 bg-[#7A0913] text-white rounded-xl flex items-center justify-center shrink-0 hover:bg-[#92141D] transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-[0_4px_12px_rgba(122,9,19,0.2)]"
+              className="w-11 h-[42px] sm:w-12 sm:h-[46px] bg-[#7A0913] text-white rounded-xl flex items-center justify-center shrink-0 hover:bg-[#94121E] active:scale-95 transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-md"
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </div>
-          <p className="text-[10px] text-slate-500 text-center font-medium tracking-wide mt-1">
-            LawEase AI Research Assistant · AI-powered legal research and case
-            law support. Verify authorities before professional use.
+          <p className="text-[9px] sm:text-[10px] text-slate-400 text-center font-medium tracking-wide mt-2 sm:mt-2.5 px-2">
+            LawEase AI · Verify all citations before professional use.
           </p>
         </div>
       </div>
